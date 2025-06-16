@@ -1,0 +1,143 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d6efd">
+  <meta charset="UTF-8">
+  <title>Berechnung Dienstteil 4.30 h Lenkzeit und 1/6 Regelung</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input { margin: 3px; }
+    .section { margin-top: 15px; }
+    .result { margin-top: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>Berechnung Dienstteil 4.30 h Lenkzeit und 1/6 Regelung</h2>
+
+  <label>Dienstbeginn:</label>
+  <input id="start" type="time" value="05:00"><br>
+
+  <label>Dienstende:</label>
+  <input id="end" type="time" value="10:00"><br>
+
+  <div class="section">
+    <label>Stand- und Wartezeiten über 1min:</label><br>
+    <div id="standzeiten">
+      <input type="number" class="stand" placeholder="1">
+<input type="number" class="stand" placeholder="2">
+<input type="number" class="stand" placeholder="3">
+<input type="number" class="stand" placeholder="4">
+<input type="number" class="stand" placeholder="5">
+<input type="number" class="stand" placeholder="6">
+<input type="number" class="stand" placeholder="7">
+<input type="number" class="stand" placeholder="8">
+<input type="number" class="stand" placeholder="9">
+<input type="number" class="stand" placeholder="10">
+<input type="number" class="stand" placeholder="11">
+<input type="number" class="stand" placeholder="12">
+<input type="number" class="stand" placeholder="13">
+<input type="number" class="stand" placeholder="14">
+<input type="number" class="stand" placeholder="15">
+<input type="number" class="stand" placeholder="16">
+<input type="number" class="stand" placeholder="17">
+<input type="number" class="stand" placeholder="18">
+<input type="number" class="stand" placeholder="19">
+<input type="number" class="stand" placeholder="20">
+    </div>
+  </div>
+
+  <div class="section">
+    <label>Wendezeiten / Endpunkte:</label><br>
+    <div id="wendezeiten">
+      <input type="number" class="wende" placeholder="1">
+<input type="number" class="wende" placeholder="2">
+<input type="number" class="wende" placeholder="3">
+<input type="number" class="wende" placeholder="4">
+<input type="number" class="wende" placeholder="5">
+<input type="number" class="wende" placeholder="6">
+<input type="number" class="wende" placeholder="7">
+<input type="number" class="wende" placeholder="8">
+<input type="number" class="wende" placeholder="9">
+<input type="number" class="wende" placeholder="10">
+<input type="number" class="wende" placeholder="11">
+<input type="number" class="wende" placeholder="12">
+<input type="number" class="wende" placeholder="13">
+<input type="number" class="wende" placeholder="14">
+<input type="number" class="wende" placeholder="15">
+<input type="number" class="wende" placeholder="16">
+<input type="number" class="wende" placeholder="17">
+<input type="number" class="wende" placeholder="18">
+<input type="number" class="wende" placeholder="19">
+<input type="number" class="wende" placeholder="20">
+    </div>
+  </div>
+
+  <button onclick="berechnen()">Berechnen</button>
+
+  <div class="result" id="output"></div>
+
+  <script>
+    function berechnen() {
+      const toMinutes = t => {
+        let parts = t.split(":");
+        return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+      };
+
+      const sumInputs = className =>
+        Array.from(document.getElementsByClassName(className))
+          .map(input => Number(input.value) || 0)
+          .reduce((a, b) => a + b, 0);
+
+      let start = toMinutes(document.getElementById("start").value);
+      let end = toMinutes(document.getElementById("end").value);
+      let stand = sumInputs("stand");
+      let wendezeiten = Array.from(document.getElementsByClassName("wende")).map(input => Number(input.value) || 0);
+      let wende = wendezeiten.reduce((a, b) => a + b, 0);
+
+      let arbeitszeit = end - start;
+      if (arbeitszeit < 0) arbeitszeit = 0;
+
+      let lenkzeit = arbeitszeit - stand - wende;
+      if (lenkzeit < 0) lenkzeit = 0;
+
+      let anrechenbareWenden = wendezeiten.filter(min => min >= 11).reduce((a, b) => a + b, 0);
+      let mindestpause161 = Math.ceil(lenkzeit / 6);
+
+      let hinweis = "";
+      if (lenkzeit > 270) {
+        if (anrechenbareWenden >= mindestpause161) {
+          hinweis = "<br><span style='color:green;'>✔️ 1/6-Regel erfüllt – ausreichend Wendezeiten vorhanden.</span>";
+        } else {
+          hinweis = "<br><span style='color:red;'>❌ Lenkzeit über 4:30h – nicht genügend Wendezeiten für 1/6-Regel!</span>";
+        }
+      } else {
+        hinweis = "<br><span style='color:green;'>✔️ Lenkzeit unter 4:30h – keine Pause erforderlich.</span>";
+      }
+
+      const toHHMM = function(min) {
+        let h = Math.floor(min / 60);
+        let m = min % 60;
+        return (h < 10 ? "0" + h : h) + ":" + (m < 10 ? "0" + m : m) + " h";
+      };
+
+      document.getElementById("output").innerHTML =
+        "Arbeitszeit: " + toHHMM(arbeitszeit) + "<br>" +
+        "Lenkzeit: " + toHHMM(lenkzeit) + "<br>" +
+        "Stand- und Wartezeiten: " + toHHMM(stand) + "<br>" +
+        "Wendezeiten / Endpunkte: " + toHHMM(wende) + hinweis;
+    }
+  </script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('Service Worker registriert:', reg.scope))
+        .catch(err => console.log('Service Worker Fehler:', err));
+    });
+  }
+  </script>
+</body>
+</html>
